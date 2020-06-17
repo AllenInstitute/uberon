@@ -2,9 +2,11 @@
 import os
 import sys
 from openpyxl import load_workbook
-from allen_institute_structures import * 
+from allen_institute_structures import *
+from owlready2 import *
 
 REPORT_PATH = 'source/report.xlsx'
+OWL_PATH = 'source/uberon.owl'
 MAPPING_SHEET = 'JR_WorkingUberonMapping'
 MOUSE_ARA_SHEET = 'Mouse_ARA'
 HBA_SHEET = 'HBA'
@@ -29,10 +31,14 @@ def get_report_data():
 	
 
 def main():
-	#TODO load in uberon.owl data
-
 	print("Running uberon cross-species mapping...")
 
+	#load in uberon.owl data
+	onto_path.append(OWL_PATH)
+	onto = get_ontology("http://purl.obolibrary.org/obo/uberon/releases/2019-11-22").load()
+	onto.load()
+
+	#load in the spreadsheet mapping data
 	mapping_sheet, mouse_sheet, human_sheet = get_report_data()
 
 	allen_institute_structures = AllenInstituteStructures(mapping_sheet, mouse_sheet, human_sheet)
