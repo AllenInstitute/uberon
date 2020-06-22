@@ -4,6 +4,7 @@ from openpyxl import load_workbook
 from structure_graph import *
 from allen_institute_structure import *
 import time
+import json
 
 ID_INDEX = 1
 ACRONYM_INDEX = 2
@@ -16,6 +17,8 @@ ST_ORDER_INDEX = 8
 STRUCTURES_INDEX = 9
 ROWS_TO_SKIP = 1
 
+
+SUPERCLASS_NAME_LINKED_INDEX = 5
 ATLAS_NAME_INDEX = 10
 MAPPING_STRUCTURE_INDEX = 11
 
@@ -32,8 +35,7 @@ class AllenInstituteStructures(object):
 		self.mouse_structure_graph = self.create_structure_graph(self.mouse_sheet, 'Mouse')
 		self.human_structure_graph = self.create_structure_graph(self.human_sheet, 'Human')
 
-		self.one_to_one_mappings, self.leaf_node_mappings = self.get_one_to_one_mappings(self.mouse_structure_graph, self.human_structure_graph, self.mapping_sheet)
-
+		self.one_to_one_mappings, self.leaf_node_mappings, self.mouse_atlas_structures, self.hba_atlas_structures = self.get_one_to_one_mappings(self.mouse_structure_graph, self.human_structure_graph, self.mapping_sheet)
 
 
 	def print_one_to_one_mappings(self):
@@ -96,7 +98,6 @@ class AllenInstituteStructures(object):
 
 	def create_structure_graph(self, sheet, graph_name):
 		
-
 		row_number = 1
 		previous_structure = None
 		previous_parent_structure = None
@@ -166,34 +167,75 @@ class AllenInstituteStructures(object):
 
 		mouse_atlas_structures = {}
 		hba_atlas_structures = {}
-		unique_names = {}
+		superclass_name_linked_names = {}
 		row_number = 1
 		for row in mapping_sheet.iter_rows():
 			atlas_name = row[ATLAS_NAME_INDEX].value
 			structure_id = row[MAPPING_STRUCTURE_INDEX].value
+			superclass_name_linked = row[SUPERCLASS_NAME_LINKED_INDEX].value
 
 			if type(structure_id) == int:
 				if atlas_name == MOUSE_ATLAS_NAME:
 					structure = mouse_structure_graph.get_structure_by_id(structure_id, atlas_name, row_number)
+					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name)
 
-					mouse_atlas_structures[structure.name] = structure
-					unique_names[structure.name] = True
+					mouse_atlas_structures[superclass_name_linked] = structure
+					superclass_name_linked_names[superclass_name_linked] = True
 
 				elif atlas_name == HBA_ATLAS_NAME:
 					structure = human_structure_graph.get_structure_by_id(structure_id, atlas_name, row_number)
-					hba_atlas_structures[structure.name] = structure
+					hba_atlas_structures[superclass_name_linked] = structure
+					superclass_name_linked_names[superclass_name_linked] = True
+					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name)
 
 			row_number+=1
 
 			# print(atlas_name, structure_id)
 			# time.sleep(1)
 
-		for unique_name in list(unique_names.keys()):
+		for superclass_name_linked_name in list(superclass_name_linked_names.keys()):
 			# print('unique_name', unique_name)
-			if unique_name in mouse_atlas_structures and unique_name in hba_atlas_structures:
-				mappings.append(unique_name)
+			if superclass_name_linked_name in mouse_atlas_structures and superclass_name_linked_name in hba_atlas_structures:
+				mappings.append(superclass_name_linked_name)
 
-				if mouse_atlas_structures[unique_name].is_leaf_node() and hba_atlas_structures[unique_name].is_leaf_node():
-					leaf_node_mappings.append(unique_name)
+				if mouse_atlas_structures[superclass_name_linked_name].is_leaf_node() and hba_atlas_structures[superclass_name_linked_name].is_leaf_node():
+					leaf_node_mappings.append(superclass_name_linked_name)
 
-		return mappings, leaf_node_mappings
+		return mappings, leaf_node_mappings, mouse_atlas_structures, hba_atlas_structures
+
+	def get_structure_info(self, structure):
+		structure_info = {}
+		structure_info['structure_id'] = structure.id
+		structure_info['acronym'] = structure.acronym
+		structure_info['name'] = structure.name
+		structure_info['atlas_name'] = structure.atlas_name
+		structure_info['mapping_xlsx_row_number'] = structure.mapping_row_number
+		structure_info['is_leaf_node'] = structure.is_leaf_node()
+
+		return structure_info
+
+	def write_output_json(self, output_file):
+		data = {}
+		data['number_of_one_to_one_mappings'] = self.get_number_of_one_to_one_mappings()
+		data['number_of_one_to_one_leaf_node_mappings'] = self.get_number_of_one_to_one_leaf_node_mappings()
+
+		structures = []
+
+		for superclass_name_linked_name in self.one_to_one_mappings:
+			structure_data = {}
+			mouse_atlas_structure = self.mouse_atlas_structures[superclass_name_linked_name]
+			hba_atlas_structure = self.hba_atlas_structures[superclass_name_linked_name]
+			structure_data['superclass_name_linked_name'] = superclass_name_linked_name
+			structure_data['are_both_leaf_nodes'] = (mouse_atlas_structure.is_leaf_node() and hba_atlas_structure.is_leaf_node())
+
+			structure_data['mouse_data_data'] = self.get_structure_info(mouse_atlas_structure)
+			structure_data['human_data_data'] = self.get_structure_info(hba_atlas_structure)
+
+			structures.append(structure_data)
+		
+		data['structures'] = structures
+
+		print('Writing', output_file)
+
+		with open(output_file, 'w') as outfile:
+			json.dump(data, outfile, indent=2)
