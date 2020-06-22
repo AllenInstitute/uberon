@@ -4,6 +4,7 @@ import sys
 from openpyxl import load_workbook
 from allen_institute_structures import *
 from owlready2 import *
+from sparql_queries import *
 
 REPORT_PATH = 'source/report.xlsx'
 MAPPING_PATH = 'source/one_to_one_mapping.xlsx'
@@ -11,7 +12,8 @@ OWL_PATH = 'source/uberon.owl'
 MAPPING_SHEET = 'JR_WorkingUberonMapping'
 MOUSE_ARA_SHEET = 'Mouse_ARA'
 HBA_SHEET = 'HBA'
-OUTPUT_PATH = 'source/combined.json'
+OUTPUT_PATH = 'source/bridge.json'
+OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22"
 
 def get_report_data():
 	print('loading', MAPPING_PATH)
@@ -33,15 +35,16 @@ def get_report_data():
 		raise IndexError(REPORT_PATH + ' does not contain a ' + HBA_SHEET + ' sheet')
 
 	return mapping_book[MAPPING_SHEET], book[MOUSE_ARA_SHEET], book[HBA_SHEET]
-	
+
+def get_uberon_ontology():
+	print('querying uberon ontology')
+	sparql_query = SparqlQueries(OWL_PATH, OWL_URI)
+	return sparql_query.search()
 
 def main():
 	print("Running uberon cross-species mapping...")
-
-	#load in uberon.owl data
-	onto_path.append(OWL_PATH)
-	onto = get_ontology("http://purl.obolibrary.org/obo/uberon/releases/2019-11-22").load()
-	onto.load()
+	#load in the uberon ontology
+	uberon_ontology = get_uberon_ontology()
 
 	#load in the spreadsheet mapping data
 	mapping_sheet, mouse_sheet, human_sheet = get_report_data()

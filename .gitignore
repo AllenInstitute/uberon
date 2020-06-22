@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 source/*.owl
-source/combined.json
+source/bridge*
