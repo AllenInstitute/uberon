@@ -13,7 +13,8 @@ MAPPING_SHEET = 'JR_WorkingUberonMapping'
 MOUSE_ARA_SHEET = 'Mouse_ARA'
 HBA_SHEET = 'HBA'
 OUTPUT_PATH = 'source/bridge.json'
-OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22"
+# OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22"
+OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22/uberon.owl"
 
 def get_report_data():
 	print('loading', MAPPING_PATH)
@@ -36,26 +37,17 @@ def get_report_data():
 
 	return mapping_book[MAPPING_SHEET], book[MOUSE_ARA_SHEET], book[HBA_SHEET]
 
-def get_uberon_ontology():
-	print('querying uberon ontology')
-	sparql_query = SparqlQueries(OWL_PATH, OWL_URI)
-	return sparql_query.search()
-
 def main():
 	print("Running uberon cross-species mapping...")
-	#load in the uberon ontology
-	uberon_ontology = get_uberon_ontology()
+	sparql_query = SparqlQueries(OWL_PATH, OWL_URI)
 
 	#load in the spreadsheet mapping data
 	mapping_sheet, mouse_sheet, human_sheet = get_report_data()
 
 	allen_institute_structures = AllenInstituteStructures(mapping_sheet, mouse_sheet, human_sheet)
-	# allen_institute_structures.print_one_to_one_mappings()
 
-	allen_institute_structures.write_output_json(OUTPUT_PATH)
+	allen_institute_structures.write_output_json(OUTPUT_PATH, sparql_query)
 
-	# print('number of one to one mappings: ', allen_institute_structures.get_number_of_one_to_one_mappings())
-	# print('number of one to one leaf node mappings: ', allen_institute_structures.get_number_of_one_to_one_leaf_node_mappings())
 
 	print('finished...')
 

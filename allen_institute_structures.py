@@ -214,10 +214,10 @@ class AllenInstituteStructures(object):
 
 		return structure_info
 
-	def write_output_json(self, output_file):
+	def write_output_json(self, output_file, sparql_query):
 		data = {}
 		data['number_of_one_to_one_mappings'] = self.get_number_of_one_to_one_mappings()
-		data['number_of_one_to_one_leaf_node_mappings'] = self.get_number_of_one_to_one_leaf_node_mappings()
+		# data['number_of_one_to_one_leaf_node_mappings'] = self.get_number_of_one_to_one_leaf_node_mappings()
 
 		structures = []
 
@@ -228,12 +228,34 @@ class AllenInstituteStructures(object):
 			structure_data['superclass_name_linked_name'] = superclass_name_linked_name
 			structure_data['are_both_leaf_nodes'] = (mouse_atlas_structure.is_leaf_node() and hba_atlas_structure.is_leaf_node())
 
-			structure_data['mouse_data_data'] = self.get_structure_info(mouse_atlas_structure)
-			structure_data['human_data_data'] = self.get_structure_info(hba_atlas_structure)
+			structure_data['mouse_data'] = self.get_structure_info(mouse_atlas_structure)
+			structure_data['human_data'] = self.get_structure_info(hba_atlas_structure)
+
+			uberon_data = {}
+			records = sparql_query.search_label(superclass_name_linked_name)
+
+			id_value = None
+			label = None
+
+			for record in records:
+				if record['predicate'] == 'id':
+					id_value = record['object']
+
+				elif record['predicate'] == 'label':
+					label = record['object']
+
+
+			uberon_data['id'] = id_value
+			uberon_data['label'] = label 
+			uberon_data['records'] = records
+
+			structure_data['uberon_data'] = uberon_data
 
 			structures.append(structure_data)
 		
 		data['structures'] = structures
+
+		
 
 		print('Writing', output_file)
 
