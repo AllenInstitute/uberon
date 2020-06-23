@@ -225,7 +225,7 @@ class AllenInstituteStructures(object):
 			structure_data = {}
 			mouse_atlas_structure = self.mouse_atlas_structures[superclass_name_linked_name]
 			hba_atlas_structure = self.hba_atlas_structures[superclass_name_linked_name]
-			structure_data['superclass_name_linked_name'] = superclass_name_linked_name
+			structure_data['superclass_name_linked'] = superclass_name_linked_name
 			structure_data['are_both_leaf_nodes'] = (mouse_atlas_structure.is_leaf_node() and hba_atlas_structure.is_leaf_node())
 
 			structure_data['mouse_data'] = self.get_structure_info(mouse_atlas_structure)

@@ -16,6 +16,7 @@ OUTPUT_PATH = 'source/bridge.json'
 # OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22"
 OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22/uberon.owl"
 
+
 def get_report_data():
 	print('loading', MAPPING_PATH)
 	mapping_book = load_workbook(MAPPING_PATH, read_only=True, data_only=True)
@@ -37,6 +38,8 @@ def get_report_data():
 
 	return mapping_book[MAPPING_SHEET], book[MOUSE_ARA_SHEET], book[HBA_SHEET]
 
+
+#before running this, please download (https://www.ebi.ac.uk/ols/ontologies/uberon) the uberon.owl file and place it in the source directory
 def main():
 	print("Running uberon cross-species mapping...")
 	sparql_query = SparqlQueries(OWL_PATH, OWL_URI)
