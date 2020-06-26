@@ -2,19 +2,20 @@ import os
 import sys
 
 class AllenInstituteStructure(object):
-	def __init__(self, id, acronym, name, hemisphere, red, green, blue, st_level, st_order, parent, row_number = None):
-		self.id = int(id)
-		self.acronym = str(acronym).strip()
-		self.name = str(name).strip()
-		self.hemisphere = hemisphere
-		self.red = red
-		self.green = green
-		self.blue = blue
+	def __init__(self, id_value, atlas_id, ontology_id, acronym, name, color_hex_triplet, graph_order, st_level, hemisphere_id, parent_structure_id, parent):
+		self.id = id_value
+		self.atlas_id = atlas_id
+		self.ontology_id = ontology_id
+		self.acronym = acronym
+		self.name = name
+		self.color_hex_triplet = color_hex_triplet
+		self.graph_order = graph_order
 		self.st_level = st_level
-		self.st_order = st_order
+		self.hemisphere_id = hemisphere_id
+		self.parent_structure_id = parent_structure_id
 		self.children = []
 		self.parent = parent
-		self.row_number = row_number
+
 		self.mapping_row_number = None
 		self.superclass_name_linked = None
 		self.atlas_name = None

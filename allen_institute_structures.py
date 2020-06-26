@@ -16,6 +16,7 @@ ST_LEVEL_INDEX = 7
 ST_ORDER_INDEX = 8
 STRUCTURES_INDEX = 9
 ROWS_TO_SKIP = 1
+FIRST_STRUCTURE = 0
 
 
 JR_ANALYSIS_INDEX = 1
@@ -28,14 +29,16 @@ HUMAN_ATLAS_NAME = 'Human_BrainSpan'
 
 class AllenInstituteStructures(object):
 
-	def __init__(self, mapping_sheet, mouse_sheet, human_sheet):
+	def __init__(self, mapping_sheet, mouse_ontology, human_ontology):
 		self.mapping_sheet = mapping_sheet
-		self.mouse_sheet = mouse_sheet
-		self.human_sheet = human_sheet
+		self.mouse_ontology = mouse_ontology
+		self.human_ontology = human_ontology
 
-		self.mouse_structure_graph = self.create_structure_graph(self.mouse_sheet, 'Mouse')
-		self.human_structure_graph = self.create_structure_graph(self.human_sheet, 'Human')
+		#build the graph
+		self.mouse_structure_graph = self.create_structure_graph(self.mouse_ontology, 'Mouse')
+		self.human_structure_graph = self.create_structure_graph(self.human_ontology, 'Human')
 
+		#map the structures
 		self.one_to_one_mappings, self.leaf_node_mappings, self.mouse_atlas_structures, self.hba_atlas_structures = self.get_one_to_one_mappings(self.mouse_structure_graph, self.human_structure_graph, self.mapping_sheet)
 
 
@@ -51,22 +54,6 @@ class AllenInstituteStructures(object):
 		return len(self.leaf_node_mappings)
 
 
-	def validate_presence(self, value_name, value, row_number, name):
-		# print('value_name', value_name, 'value', value, 'row_number', row_number)
-
-		if not value:
-			raise Exception('Expected ' + str(value_name) + ' on row ' + str(row_number) + ' for sheet ' + str(name) + ' to contain a value but it did not')
-
-
-	def validate_int_type(self, value_name, value, row_number, name):
-		if type(value) != int:
-			raise Exception('Expected ' + str(value_name) + ' on row ' + str(row_number) + ' for sheet ' + str(name) + ' to be of type int but it was ' + str(type(value)))
-
-	def validate_string_type(self, value_name, value, row_number, name):
-		if type(value) != str:
-			raise Exception('Expected ' + str(value_name) + ' on row ' + str(row_number) + ' for sheet ' + str(name) + ' to be of type string but it was ' + str(type(value)))
-
-
 	def get_structure_offset(self, row):
 		offset = 0
 		value = row[STRUCTURES_INDEX + offset].value
@@ -77,85 +64,53 @@ class AllenInstituteStructures(object):
 
 		return value, offset
 
+	def create_structure_graph(self, ontology, graph_name):
+		print('create_structure_graph', graph_name)
+		msg = ontology['msg']
+		root_structure = msg[FIRST_STRUCTURE]
 
-	def get_parent_structure(self, parent_offset, previous_parent_offset, previous_structure, previous_parent_structure):
-		#default
-		offset_diff = parent_offset - previous_parent_offset
-		parent_structure = None
+		parents = {}
 
-		if offset_diff > 0:
-			parent_structure = previous_structure
-		else:
-			parent_structure = previous_parent_structure
+		queue = []
+		queue.append(root_structure)
 
-			#if previous_structure is None then we are at the root node
-			while offset_diff != 0:
-				parent_structure = parent_structure.parent
-				offset_diff+=1
-
-
-		return parent_structure
-
-
-	def create_structure_graph(self, sheet, graph_name):
-		
-		row_number = 1
-		previous_structure = None
-		previous_parent_structure = None
-		previous_parent_offset = 0
 
 		root = None
 
-		for row in sheet.iter_rows():
-			if ROWS_TO_SKIP < row_number:
-				id_value = row[ID_INDEX].value
-				acronym = row[ACRONYM_INDEX].value
-				hemisphere = row[HEMISPHERE_INDEX].value
-				red = row[RED_INDEX].value
-				green = row[GREEN_INDEX].value
-				blue = row[BLUE_INDEX].value
-				st_level = row[ST_LEVEL_INDEX].value
-				st_order = row[ST_ORDER_INDEX].value
-				structures = row[STRUCTURES_INDEX].value
+		#bfs
+		while len(queue) != 0:
+			current_structure = queue.pop(FIRST_STRUCTURE)
 
-				name, parent_offset = self.get_structure_offset(row)
+			id_value = current_structure['id']
+			atlas_id = current_structure['atlas_id']
+			ontology_id = current_structure['ontology_id']
+			acronym = current_structure['acronym']
+			name = current_structure['name']
+			color_hex_triplet = current_structure['color_hex_triplet']
+			graph_order = current_structure['graph_order']
+			st_level = current_structure['st_level']
+			hemisphere_id = current_structure['hemisphere_id']
+			parent_structure_id = current_structure['parent_structure_id']
+			children = current_structure['children']
 
-				self.validate_presence('id', id_value, row_number, graph_name)
-				self.validate_presence('acronym', acronym, row_number, graph_name)
-				self.validate_presence('structure', name, row_number, graph_name)
+			parent = None
 
-				acronym = str(acronym)
+			#look up parent
+			if parent_structure_id is not None:
+				parent = parents[parent_structure_id]
 
-				self.validate_int_type('id', id_value, row_number, graph_name)
-				self.validate_string_type('acronym', acronym, row_number, graph_name)
-				self.validate_string_type('structure', name, row_number, graph_name)
+			#create the structure
+			structure = AllenInstituteStructure(id_value, atlas_id, ontology_id, acronym, name, color_hex_triplet, graph_order, st_level, hemisphere_id, parent_structure_id, parent)
 
-				# print("********************")
-				# print(row_number, name, parent_offset)
+			#set the root node if needed
+			if root == None:
+				root = structure
 
-				# time.sleep(1)
-				
+			parents[id_value] = structure
 
-				parent_structure = self.get_parent_structure(parent_offset, previous_parent_offset, previous_structure, previous_parent_structure)
 
-				# if parent_structure:
-				# 	print(row_number, name, ' - ', parent_structure.name)
-				# else:
-				# 	print(row_number, name, ' - ', 'none')
-
-				# time.sleep(1)
-
-				allen_institute_structure = AllenInstituteStructure(id_value, acronym, name, hemisphere, red, green, blue, st_level, st_order, parent_structure, row_number)
-
-				if root is None:
-					root = allen_institute_structure
-				
-
-				previous_parent_offset = parent_offset
-				previous_structure = allen_institute_structure
-				previous_parent_structure = parent_structure
-
-			row_number+=1
+			for child in children:
+				queue.append(child)
 
 		return StructureGraph(root, graph_name)
 
@@ -256,8 +211,6 @@ class AllenInstituteStructures(object):
 			structures.append(structure_data)
 		
 		data['structures'] = structures
-
-		
 
 		print('Writing', output_file)
 
