@@ -18,14 +18,16 @@ class AllenInstituteStructure(object):
 		self.mapping_row_number = None
 		self.superclass_name_linked = None
 		self.atlas_name = None
+		self.analysis = None
 
 		if parent is not None:
 			parent.add_child_structure(self)
 
-	def add_mapping_info(self, mapping_row_number, superclass_name_linked, atlas_name):
+	def add_mapping_info(self, mapping_row_number, superclass_name_linked, atlas_name, analysis):
 		self.mapping_row_number = mapping_row_number
 		self.superclass_name_linked = superclass_name_linked
 		self.atlas_name = atlas_name
+		self.analysis = analysis
 
 	def add_child_structure(self, structure):
 		self.children.append(structure)
@@ -35,3 +37,6 @@ class AllenInstituteStructure(object):
 
 	def is_root(self):
 		return (self.parent == None)
+
+	def is_ok(self):
+		return self.analysis == 'OK'

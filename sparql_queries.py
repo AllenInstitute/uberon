@@ -64,25 +64,8 @@ class SparqlQueries:
 
 	def search_label(self, object_value):
 		#Search query is given here
-
-		# query = "base <" + str(self.owrl_uri) + "> " \
-		# 	"SELECT ?p " \
-		# 	"WHERE { " \
-		# 	"?p label " + str(object_value) + " " \
-		# 	"}"
-
-		# query = "prefix base: <" + str(self.owrl_uri) + "> " \
-		# 	"SELECT ?p " \
-		# 	"WHERE { " \
-		# 	"?p base:label '" + str(object_value) + "' ." \
-		# 	"}"
-
-		# query = "prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
-		# 	" base <" + str(self.owrl_uri) + "> " \
-		# 	"SELECT ?p ?n " \
-		# 	"WHERE { " \
-		# 	"?p rdfs:label '" + str(object_value) + "' ." \
-		# 	"}"
+		#escape single quotes
+		object_value = object_value.replace("'", "\\'")
 
 		query = "prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
 			" base <" + str(self.owrl_uri) + "> " \

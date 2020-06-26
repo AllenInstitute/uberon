@@ -18,12 +18,13 @@ STRUCTURES_INDEX = 9
 ROWS_TO_SKIP = 1
 
 
+JR_ANALYSIS_INDEX = 1
 SUPERCLASS_NAME_LINKED_INDEX = 5
 ATLAS_NAME_INDEX = 10
 MAPPING_STRUCTURE_INDEX = 11
 
 MOUSE_ATLAS_NAME = 'Mouse_ARA'
-HBA_ATLAS_NAME = 'HBA'
+HUMAN_ATLAS_NAME = 'Human_BrainSpan'
 
 class AllenInstituteStructures(object):
 
@@ -159,34 +160,33 @@ class AllenInstituteStructures(object):
 		return StructureGraph(root, graph_name)
 
 	def get_one_to_one_mappings(self, mouse_structure_graph, human_structure_graph, mapping_sheet):
-		MOUSE_ATLAS_NAME = 'Mouse_ARA'
-		HBA_ATLAS_NAME = 'HBA'
 
 		mappings = []
 		leaf_node_mappings = []
 
 		mouse_atlas_structures = {}
-		hba_atlas_structures = {}
+		human_atlas_structures = {}
 		superclass_name_linked_names = {}
 		row_number = 1
 		for row in mapping_sheet.iter_rows():
 			atlas_name = row[ATLAS_NAME_INDEX].value
 			structure_id = row[MAPPING_STRUCTURE_INDEX].value
 			superclass_name_linked = row[SUPERCLASS_NAME_LINKED_INDEX].value
+			analysis = row[JR_ANALYSIS_INDEX].value
 
 			if type(structure_id) == int:
 				if atlas_name == MOUSE_ATLAS_NAME:
 					structure = mouse_structure_graph.get_structure_by_id(structure_id, atlas_name, row_number)
-					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name)
+					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name, analysis)
 
 					mouse_atlas_structures[superclass_name_linked] = structure
 					superclass_name_linked_names[superclass_name_linked] = True
 
-				elif atlas_name == HBA_ATLAS_NAME:
+				elif atlas_name == HUMAN_ATLAS_NAME:
 					structure = human_structure_graph.get_structure_by_id(structure_id, atlas_name, row_number)
-					hba_atlas_structures[superclass_name_linked] = structure
+					human_atlas_structures[superclass_name_linked] = structure
 					superclass_name_linked_names[superclass_name_linked] = True
-					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name)
+					structure.add_mapping_info(row_number, superclass_name_linked, atlas_name, analysis)
 
 			row_number+=1
 
@@ -195,19 +195,21 @@ class AllenInstituteStructures(object):
 
 		for superclass_name_linked_name in list(superclass_name_linked_names.keys()):
 			# print('unique_name', unique_name)
-			if superclass_name_linked_name in mouse_atlas_structures and superclass_name_linked_name in hba_atlas_structures:
+			# if superclass_name_linked_name in mouse_atlas_structures and superclass_name_linked_name in human_atlas_structures and mouse_atlas_structures[superclass_name_linked_name].is_ok() and human_atlas_structures[superclass_name_linked_name].is_ok():
+			if superclass_name_linked_name in mouse_atlas_structures and superclass_name_linked_name in human_atlas_structures:
 				mappings.append(superclass_name_linked_name)
 
-				if mouse_atlas_structures[superclass_name_linked_name].is_leaf_node() and hba_atlas_structures[superclass_name_linked_name].is_leaf_node():
+				if mouse_atlas_structures[superclass_name_linked_name].is_leaf_node() and human_atlas_structures[superclass_name_linked_name].is_leaf_node():
 					leaf_node_mappings.append(superclass_name_linked_name)
 
-		return mappings, leaf_node_mappings, mouse_atlas_structures, hba_atlas_structures
+		return mappings, leaf_node_mappings, mouse_atlas_structures, human_atlas_structures
 
 	def get_structure_info(self, structure):
 		structure_info = {}
 		structure_info['structure_id'] = structure.id
 		structure_info['acronym'] = structure.acronym
 		structure_info['name'] = structure.name
+		structure_info['jr_analysis'] = structure.analysis
 		structure_info['atlas_name'] = structure.atlas_name
 		structure_info['mapping_xlsx_row_number'] = structure.mapping_row_number
 		structure_info['is_leaf_node'] = structure.is_leaf_node()

@@ -11,7 +11,7 @@ MAPPING_PATH = 'source/one_to_one_mapping.xlsx'
 OWL_PATH = 'source/uberon.owl'
 MAPPING_SHEET = 'JR_WorkingUberonMapping'
 MOUSE_ARA_SHEET = 'Mouse_ARA'
-HBA_SHEET = 'HBA'
+HUMAN_SHEET = 'Human_BrainSpan'
 OUTPUT_PATH = 'source/bridge.json'
 # OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22"
 OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22/uberon.owl"
@@ -33,10 +33,10 @@ def get_report_data():
 		raise IndexError(REPORT_PATH + ' does not contain a ' + MOUSE_ARA_SHEET + ' sheet')
 
 	# check for existing sheet name
-	if HBA_SHEET not in book.sheetnames:
-		raise IndexError(REPORT_PATH + ' does not contain a ' + HBA_SHEET + ' sheet')
+	if HUMAN_SHEET not in book.sheetnames:
+		raise IndexError(REPORT_PATH + ' does not contain a ' + HUMAN_SHEET + ' sheet')
 
-	return mapping_book[MAPPING_SHEET], book[MOUSE_ARA_SHEET], book[HBA_SHEET]
+	return mapping_book[MAPPING_SHEET], book[MOUSE_ARA_SHEET], book[HUMAN_SHEET]
 
 
 #before running this, please download (https://www.ebi.ac.uk/ols/ontologies/uberon) the uberon.owl file and place it in the source directory
