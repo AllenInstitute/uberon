@@ -41,3 +41,6 @@ class AllenInstituteStructure(object):
 
 	def is_ok(self):
 		return self.analysis == 'OK'
+
+	def is_missing_superclass_name_linked(self):
+		return (self.superclass_name_linked == None)

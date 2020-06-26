@@ -175,12 +175,9 @@ class AllenInstituteStructures(object):
 
 		return structure_info
 
-	def write_output_json(self, output_file, sparql_query):
-		data = {}
-		data['number_of_one_to_one_mappings'] = self.get_number_of_one_to_one_mappings()
-		# data['number_of_one_to_one_leaf_node_mappings'] = self.get_number_of_one_to_one_leaf_node_mappings()
+	def get_mapped_structures(self, sparql_query):
+		mapped_structures = []
 
-		structures = []
 
 		for superclass_name_linked_name in self.one_to_one_mappings:
 			structure_data = {}
@@ -212,14 +209,75 @@ class AllenInstituteStructures(object):
 
 			structure_data['uberon_data'] = uberon_data
 
-			structures.append(structure_data)
+			mapped_structures.append(structure_data)
+
+		return mapped_structures
+
+	def get_missing_structures(self):
+
+		#get all of the unmapped structures
+		mouse_root = self.mouse_structure_graph.root
+		human_root = self.human_structure_graph.root
+
+		missing_mouse_structures = self.find_missing_structures(mouse_root)
+		missing_human_structures = self.find_missing_structures(human_root)
+
+
+		missing_structures = {}
+		missing_mouse = {}
+		missing_mouse['number_of_missing'] = len(missing_mouse_structures)
+		missing_mouse['missing'] = missing_mouse_structures
+
+		missing_human = {}
+		missing_human['number_of_missing'] = len(missing_human_structures)
+		missing_human['missing'] = missing_human_structures
 		
-		data['structures'] = structures
+		missing_structures['missing_mouse'] = missing_mouse
+		missing_structures['missing_human'] = missing_human
+
+		return missing_structures
+
+	def write_output_json(self, output_file, sparql_query):
+		data = {}
+		data['number_of_one_to_one_mappings'] = self.get_number_of_one_to_one_mappings()
+		data['number_of_one_to_one_leaf_node_mappings'] = self.get_number_of_one_to_one_leaf_node_mappings()
+
+		#get the missing and mapped structures
+		missing_structures = self.get_missing_structures()
+		mapped_structures = self.get_mapped_structures(sparql_query)
+
+		data['missing_structures'] = missing_structures
+		data['mapped_structures'] = mapped_structures
 
 		print('Writing', output_file)
 
 		with open(output_file, 'w') as outfile:
 			json.dump(data, outfile, indent=2)
+
+	def find_missing_structures(self, root_structure):
+		missing_structures = []
+
+		self.one_to_one_mappings
+
+		queue = []
+		queue.append(root_structure)
+
+
+		#bfs
+		while len(queue) != 0:
+			structure = queue.pop(FIRST_STRUCTURE)
+			if structure.is_missing_superclass_name_linked():
+				structure_data = {}
+				structure_data['id'] = structure.id
+				structure_data['name'] = structure.name
+				structure_data['acronym'] = structure.acronym
+
+				missing_structures.append(structure_data)
+
+			for child in structure.children:
+				queue.append(child)
+
+		return missing_structures
 
 	def get_mouse_id(self, structure):
 		return 'mouse_' + str(structure.id) + '_' + str(structure.acronym)
