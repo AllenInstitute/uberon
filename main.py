@@ -8,10 +8,16 @@ from sparql_queries import *
 import urllib.request
 import json
 
+import networkx as nx
+import matplotlib.pyplot as plt
+
 MAPPING_PATH = 'source/one_to_one_mapping.xlsx'
 OWL_PATH = 'source/uberon.owl'
 MAPPING_SHEET = 'JR_WorkingUberonMapping'
 OUTPUT_PATH = 'source/bridge.json'
+OUTPUT_GRAPH_PATH = 'source/graph.svg'
+MOUSE_OUTPUT_GRAPH_PATH = 'source/mouse.svg'
+HUMAN_OUTPUT_GRAPH_PATH = 'source/human.svg'
 OWL_URI = "http://purl.obolibrary.org/obo/uberon/releases/2019-11-22/uberon.owl"
 
 MOUSE_API = 'http://api.brain-map.org/api/v2/structure_graph_download/1.json'
@@ -19,7 +25,7 @@ BRAINSPAN_API = 'http://api.brain-map.org/api/v2/structure_graph_download/16.jso
 
 
 def get_report_data():
-	print('loading', MAPPING_PATH)
+	print('Loading', MAPPING_PATH)
 	mapping_book = load_workbook(MAPPING_PATH, read_only=True, data_only=True)
 
 	# check for existing sheet name
@@ -49,7 +55,6 @@ def download_allen_ontologies():
 
 	return mouse, human
 
-#before running this, please download (https://www.ebi.ac.uk/ols/ontologies/uberon) the uberon.owl file and place it in the source directory
 def main():
 	print("Running uberon cross-species mapping...")
 	sparql_query = SparqlQueries(OWL_PATH, OWL_URI)
@@ -62,8 +67,11 @@ def main():
 
 	allen_institute_structures = AllenInstituteStructures(mapping_sheet, mouse_ontology, human_ontology)
 
+	#write the output json file
 	allen_institute_structures.write_output_json(OUTPUT_PATH, sparql_query)
 
+	#write the output graph
+	allen_institute_structures.write_output_graph(OUTPUT_GRAPH_PATH, MOUSE_OUTPUT_GRAPH_PATH, HUMAN_OUTPUT_GRAPH_PATH)
 
 	print('finished...')
 

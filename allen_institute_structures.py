@@ -5,6 +5,11 @@ from structure_graph import *
 from allen_institute_structure import *
 import time
 import json
+import networkx
+import networkx as nx
+import matplotlib.pyplot as plt
+# from networkx.drawing.nx_agraph import graphviz_layout
+from pygraphviz import *
 
 ID_INDEX = 1
 ACRONYM_INDEX = 2
@@ -39,7 +44,7 @@ class AllenInstituteStructures(object):
 		self.human_structure_graph = self.create_structure_graph(self.human_ontology, 'Human')
 
 		#map the structures
-		self.one_to_one_mappings, self.leaf_node_mappings, self.mouse_atlas_structures, self.hba_atlas_structures = self.get_one_to_one_mappings(self.mouse_structure_graph, self.human_structure_graph, self.mapping_sheet)
+		self.one_to_one_mappings, self.leaf_node_mappings, self.mouse_atlas_structures, self.human_atlas_structures = self.get_one_to_one_mappings(self.mouse_structure_graph, self.human_structure_graph, self.mapping_sheet)
 
 
 	def print_one_to_one_mappings(self):
@@ -65,7 +70,6 @@ class AllenInstituteStructures(object):
 		return value, offset
 
 	def create_structure_graph(self, ontology, graph_name):
-		print('create_structure_graph', graph_name)
 		msg = ontology['msg']
 		root_structure = msg[FIRST_STRUCTURE]
 
@@ -181,7 +185,7 @@ class AllenInstituteStructures(object):
 		for superclass_name_linked_name in self.one_to_one_mappings:
 			structure_data = {}
 			mouse_atlas_structure = self.mouse_atlas_structures[superclass_name_linked_name]
-			hba_atlas_structure = self.hba_atlas_structures[superclass_name_linked_name]
+			hba_atlas_structure = self.human_atlas_structures[superclass_name_linked_name]
 			structure_data['superclass_name_linked'] = superclass_name_linked_name
 			structure_data['are_both_leaf_nodes'] = (mouse_atlas_structure.is_leaf_node() and hba_atlas_structure.is_leaf_node())
 
@@ -216,3 +220,118 @@ class AllenInstituteStructures(object):
 
 		with open(output_file, 'w') as outfile:
 			json.dump(data, outfile, indent=2)
+
+	def get_mouse_id(self, structure):
+		return 'mouse_' + str(structure.id) + '_' + str(structure.acronym)
+
+	def get_human_id(self, structure):
+		return 'human_' + str(structure.id) + '_' + str(structure.acronym)
+
+	def add_nodes(self, graph, root_structure, graph_type):
+		queue = []
+		queue.append(root_structure)
+
+		#bfs
+		while len(queue) != 0:
+			structure = queue.pop(FIRST_STRUCTURE)
+			# color = 'red'
+			color = '#' + str(structure.color_hex_triplet)
+			fillcolor = 'red'
+
+			if graph_type == 'mouse':
+				graph.add_node(self.get_mouse_id(structure), color=color, style='filled', fillcolor=fillcolor)
+			elif graph_type == 'human':
+				graph.add_node(self.get_human_id(structure), color=color, style='filled', fillcolor=fillcolor)
+			else:
+				raise Exception('graph_type ' + str(graph_type) + ' is not valid')
+
+			# graph.add_node(structure.id, color='red')
+
+			for child in structure.children:
+				queue.append(child)
+
+	def add_edges(self, graph, root_structure, graph_type):
+		queue = []
+		queue.append(root_structure)
+
+		#bfs
+		while len(queue) != 0:
+			structure = queue.pop(FIRST_STRUCTURE)
+			if(structure.parent is not None):
+				if graph_type == 'mouse':
+					graph.add_edge(self.get_mouse_id(structure.parent), self.get_mouse_id(structure))
+				elif graph_type == 'human':
+					graph.add_edge(self.get_human_id(structure.parent), self.get_human_id(structure))
+				else:
+					raise Exception('graph_type ' + str(graph_type) + ' is not valid')
+
+			for child in structure.children:
+				queue.append(child)
+
+	#add in all of the nodes and tree edges
+	def create_graph(self, graph, root_structure, graph_type):
+		self.add_nodes(graph, root_structure, graph_type)
+		self.add_edges(graph, root_structure, graph_type)
+
+	def add_cross_species_links(self, graph, mouse_graph, human_graph):
+		fillcolor = 'green'
+
+		#loop through all structures with 1 to 1 mappings
+		for superclass_name_linked_name in self.one_to_one_mappings:
+			mouse_atlas_structure = self.mouse_atlas_structures[superclass_name_linked_name]
+			hba_atlas_structure = self.human_atlas_structures[superclass_name_linked_name]
+
+			#set edge beteen them
+			graph.add_edge(self.get_mouse_id(mouse_atlas_structure), self.get_human_id(hba_atlas_structure), label=superclass_name_linked_name, color='green')
+
+			#color those nodes green
+			mouse_node = graph.get_node(self.get_mouse_id(mouse_atlas_structure))
+			mouse_node.attr['fillcolor'] = fillcolor
+
+			human_node = graph.get_node(self.get_human_id(hba_atlas_structure))
+			human_node.attr['fillcolor'] = fillcolor
+
+
+			other_mouse_node = mouse_graph.get_node(self.get_mouse_id(mouse_atlas_structure))
+			other_mouse_node.attr['fillcolor'] = fillcolor
+
+			other_human_node = human_graph.get_node(self.get_human_id(hba_atlas_structure))
+			other_human_node.attr['fillcolor'] = fillcolor
+
+
+	def write_output_graph(self, output_file, mouse_output_file, human_output_file):
+		# g = nx.Graph()
+		# g = nx.DiGraph()
+		graph = AGraph()
+		mouse_graph = AGraph()
+		human_graph = AGraph()
+
+		#get the roots
+		mouse_root = self.mouse_structure_graph.root
+		human_root = self.human_structure_graph.root
+
+		#add the mouse structures
+		self.create_graph(graph, mouse_root, 'mouse')
+		self.create_graph(mouse_graph, mouse_root, 'mouse')
+
+		#add the human structures
+		self.create_graph(graph, human_root, 'human')
+		self.create_graph(human_graph, human_root, 'human')
+
+		#add the links across species
+		self.add_cross_species_links(graph, mouse_graph, human_graph)
+	
+		#set the layouts
+		graph.layout('dot', args='-Nfontsize=10 -Nwidth=".2" -Nheight=".2" -Nmargin=0 -Gfontsize=8')
+		mouse_graph.layout('dot', args='-Nfontsize=10 -Nwidth=".2" -Nheight=".2" -Nmargin=0 -Gfontsize=8')
+		human_graph.layout('dot', args='-Nfontsize=10 -Nwidth=".2" -Nheight=".2" -Nmargin=0 -Gfontsize=8')
+
+		#write the files
+		print('Writing', output_file)
+		graph.draw(output_file)
+
+		print('Writing', mouse_output_file)
+		mouse_graph.draw(mouse_output_file)
+
+		print('Writing', human_output_file)
+		human_graph.draw(human_output_file)

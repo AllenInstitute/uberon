@@ -6,6 +6,9 @@ import json
 
 class SparqlQueries:
 	def __init__(self, owl_path, owrl_uri):
+		if not os.path.exists(owl_path):
+			raise Exception('Expected to find uberon owl file located at ' + str(owl_path) + ' but did not. Please download this file (at https://www.ebi.ac.uk/ols/ontologies/uberon) and place it in the source directory')
+
 		world = World()
 		world.get_ontology(owl_path).load()
 		# sync_reasoner(world)
