@@ -339,8 +339,11 @@ class AllenInstituteStructures(object):
 			mouse_atlas_structure = self.mouse_atlas_structures[superclass_name_linked_name]
 			hba_atlas_structure = self.human_atlas_structures[superclass_name_linked_name]
 
+			# label = superclass_name_linked_name
+			label = superclass_name_linked_name + ' (' + str(mouse_atlas_structure.analysis) + ',' + str(hba_atlas_structure.analysis) + ')'
+
 			#set edge beteen them
-			graph.add_edge(self.get_mouse_id(mouse_atlas_structure), self.get_human_id(hba_atlas_structure), label=superclass_name_linked_name, color='green')
+			graph.add_edge(self.get_mouse_id(mouse_atlas_structure), self.get_human_id(hba_atlas_structure), label=label, color='green')
 
 			#color those nodes green
 			mouse_node = graph.get_node(self.get_mouse_id(mouse_atlas_structure))
